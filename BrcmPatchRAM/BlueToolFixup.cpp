@@ -289,6 +289,23 @@ static const uint8_t kLeEventMaskPatched26[] =
     0x0F, 0x1F, 0x40, 0x00
 };
 
+// macOS 26.7.2 (25G332) x86_64 bluetoothd, 0x100175188
+static const uint8_t kLeEventMaskOriginal26_7[] =
+{
+    0x85, 0xC0,
+    0x48, 0x8D, 0x05, 0xF0, 0x32, 0x90, 0x00,
+    0x48, 0x8D, 0x15, 0xF1, 0x32, 0x90, 0x00,
+    0x48, 0x0F, 0x44, 0xD0
+};
+
+static const uint8_t kLeEventMaskPatched26_7[] =
+{
+    0x85, 0xC0,
+    0x48, 0x8D, 0x05, 0xF0, 0x32, 0x90, 0x00,
+    0x48, 0x8D, 0x15, 0xF1, 0x32, 0x90, 0x00,
+    0x0F, 0x1F, 0x40, 0x00
+};
+
 // Advertising set random address (0x10050ef2e on 26.4.1): for chipset <= 3 bluetoothd turns
 // off LE Set Advertising Set Random Address, then enables sets whose own address type is
 // random, which the controller rejects with Invalid HCI Command Parameters (0x12).
@@ -308,6 +325,21 @@ static const uint8_t kAdvSetAddrPatched26[] =
     0x31, 0xFF, 0xE8, 0xA2, 0x7D, 0xCE, 0xFF
 };
 
+// macOS 26.7.2 (25G332) x86_64 bluetoothd, 0x10051523e
+static const uint8_t kAdvSetAddrOriginal26_7[] =
+{
+    0x83, 0xB8, 0x34, 0x03, 0x00, 0x00, 0x03,
+    0x77, 0x2A,
+    0x31, 0xFF, 0xE8, 0x1E, 0x6C, 0xCE, 0xFF
+};
+
+static const uint8_t kAdvSetAddrPatched26_7[] =
+{
+    0x83, 0xB8, 0x34, 0x03, 0x00, 0x00, 0x03,
+    0xEB, 0x07,
+    0x31, 0xFF, 0xE8, 0x1E, 0x6C, 0xCE, 0xFF
+};
+
 // LE Extended Create Connection (0x10050eb5c on 26.4.1). With extended scanning on, the
 // controller rejects legacy LE Create Connection (0x200d) with Command Disallowed, and after
 // enough of those bluetoothd restarts itself ("Exceed max allowed consecutive command
@@ -323,6 +355,19 @@ static const uint8_t kExtCreateConnPatched26[] =
 {
     0xBF, 0x01, 0x00, 0x00, 0x00, 0x66, 0x90,
     0xE8, 0x2F, 0xB0, 0xCF, 0xFF
+};
+
+// macOS 26.7.2 (25G332) x86_64 bluetoothd, 0x100514e6c
+static const uint8_t kExtCreateConnOriginal26_7[] =
+{
+    0x0F, 0xB6, 0xBD, 0x5E, 0xFF, 0xFF, 0xFF,
+    0xE8, 0xAB, 0x9E, 0xCF, 0xFF
+};
+
+static const uint8_t kExtCreateConnPatched26_7[] =
+{
+    0xBF, 0x01, 0x00, 0x00, 0x00, 0x66, 0x90,
+    0xE8, 0xAB, 0x9E, 0xCF, 0xFF
 };
 
 // Advertising set random address before every enable (0x1001f951b on 26.4.1). bluetoothd
@@ -466,13 +511,16 @@ static void patched_cs_validate_page(vnode_t vp, memory_object_t pager, memory_o
                 KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kExtScanCapOriginal26, sizeof(kExtScanCapOriginal26), kSpecAdvSetsCapPatched26, sizeof(kSpecAdvSetsCapPatched26)))
                 SYSLOG(MODULE_SHORT, "[advsets] patched extended scanning capability in %s", path);
             if (shouldPatchSpecAdvSets &&
-                KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kLeEventMaskOriginal26, sizeof(kLeEventMaskOriginal26), kLeEventMaskPatched26, sizeof(kLeEventMaskPatched26)))
+                (KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kLeEventMaskOriginal26, sizeof(kLeEventMaskOriginal26), kLeEventMaskPatched26, sizeof(kLeEventMaskPatched26)) ||
+                 KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kLeEventMaskOriginal26_7, sizeof(kLeEventMaskOriginal26_7), kLeEventMaskPatched26_7, sizeof(kLeEventMaskPatched26_7))))
                 SYSLOG(MODULE_SHORT, "[advsets] patched LE event mask in %s", path);
             if (shouldPatchSpecAdvSets &&
-                KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kAdvSetAddrOriginal26, sizeof(kAdvSetAddrOriginal26), kAdvSetAddrPatched26, sizeof(kAdvSetAddrPatched26)))
+                (KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kAdvSetAddrOriginal26, sizeof(kAdvSetAddrOriginal26), kAdvSetAddrPatched26, sizeof(kAdvSetAddrPatched26)) ||
+                 KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kAdvSetAddrOriginal26_7, sizeof(kAdvSetAddrOriginal26_7), kAdvSetAddrPatched26_7, sizeof(kAdvSetAddrPatched26_7))))
                 SYSLOG(MODULE_SHORT, "[advsets] patched advertising set random address in %s", path);
             if (shouldPatchSpecAdvSets &&
-                KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kExtCreateConnOriginal26, sizeof(kExtCreateConnOriginal26), kExtCreateConnPatched26, sizeof(kExtCreateConnPatched26)))
+                (KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kExtCreateConnOriginal26, sizeof(kExtCreateConnOriginal26), kExtCreateConnPatched26, sizeof(kExtCreateConnPatched26)) ||
+                 KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kExtCreateConnOriginal26_7, sizeof(kExtCreateConnOriginal26_7), kExtCreateConnPatched26_7, sizeof(kExtCreateConnPatched26_7))))
                 SYSLOG(MODULE_SHORT, "[advsets] patched extended create connection in %s", path);
             if (shouldPatchSpecAdvSets &&
                 KernelPatcher::findAndReplace(const_cast<void *>(data), PAGE_SIZE, kAdvSetAddrResendOriginal26, sizeof(kAdvSetAddrResendOriginal26), kAdvSetAddrResendPatched26, sizeof(kAdvSetAddrResendPatched26)))
